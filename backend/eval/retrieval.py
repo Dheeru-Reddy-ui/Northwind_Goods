@@ -113,8 +113,21 @@ def format_report(res: dict) -> str:
     return "\n".join(lines)
 
 
+def _store(res: dict) -> None:
+    from app.db.database import SessionLocal
+    from app.db.models import EvalRun
+
+    db = SessionLocal()
+    try:
+        db.add(EvalRun(mode="retrieval", total=res["n"], metrics=res))
+        db.commit()
+    finally:
+        db.close()
+
+
 def main() -> None:
     res = run()
+    _store(res)
     print("\n" + format_report(res) + "\n")
 
 

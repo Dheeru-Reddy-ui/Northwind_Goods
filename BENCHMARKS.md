@@ -137,5 +137,8 @@ cd backend
 .venv/Scripts/python -m eval.run --mode both     # section 1 + 2
 .venv/Scripts/python -m eval.run --baseline      # diff vs the previous stored run
 .venv/Scripts/python -m eval.retrieval           # section 3
+.venv/Scripts/python -m eval.reliability --n 10  # section 4
 ```
-Runs are written to the `eval_runs` table so they're comparable over time.
+Runs are written to the `eval_runs` table so they're comparable over time — and
+surfaced in-app at **`/report`**, which renders the latest stored scorecard,
+RAGAS, retrieval ablation, and reliability study in the product's design system.

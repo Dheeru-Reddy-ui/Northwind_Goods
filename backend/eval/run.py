@@ -80,12 +80,14 @@ def evaluate(mode_list: list[str], limit: int | None) -> dict:
     scorecards = {m: _scorecard(agg[m]) for m in mode_list}
     rag_summary = _mean_dicts(rag_rows) if rag_rows else {}
 
-    # persist the production run
+    # persist the production run (with the naive comparison so the in-app
+    # /report page can render it without recomputing)
     if "production" in scorecards:
         run = EvalRun(mode="production", total=len(tickets),
                       metrics={"by_category": scorecards["production"]["by_category"],
                                "overall": scorecards["production"]["overall"],
-                               "ragas": rag_summary})
+                               "ragas": rag_summary,
+                               "naive_overall": scorecards.get("naive", {}).get("overall")})
         db.add(run)
         db.commit()
 

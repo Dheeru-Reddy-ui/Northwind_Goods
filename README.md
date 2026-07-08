@@ -45,6 +45,9 @@ test set so the ops dashboard is never empty.
    recompute as you change the human-agent cost assumptions, and data-grounded
    recommendation cards generated only from the real aggregates (every figure is
    shown, none invented).
+6. **Report** (`/report`) — the engineering depth made visible in-app: the
+   golden-set scorecard, RAGAS metrics, production-vs-naive lift, the retrieval
+   ablation, and the reliability (pass^k) study, all read from stored eval runs.
 
 ---
 

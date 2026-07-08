@@ -8,6 +8,7 @@ const TABS = [
   { href: "/ops", label: "Console" },
   { href: "/ops/impact", label: "Impact" },
   { href: "/ops/insights", label: "Insights" },
+  { href: "/report", label: "Report" },
 ];
 
 export function OpsTabs() {

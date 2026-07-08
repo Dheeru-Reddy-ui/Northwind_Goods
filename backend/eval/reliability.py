@@ -146,6 +146,16 @@ def main() -> None:
     on = run(args.n, fixes=True, limit=args.limit)
     print("\n" + report(off, on) + "\n")
 
+    from app.db.database import SessionLocal
+    from app.db.models import EvalRun
+    db = SessionLocal()
+    try:
+        db.add(EvalRun(mode="reliability", total=on["tasks"],
+                       metrics={"provider": provider, "n": args.n, "off": off, "on": on}))
+        db.commit()
+    finally:
+        db.close()
+
 
 if __name__ == "__main__":
     main()

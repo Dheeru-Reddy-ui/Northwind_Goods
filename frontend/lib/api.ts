@@ -6,6 +6,7 @@ import type {
   Insights,
   Metrics,
   PendingAction,
+  Report,
 } from "./types";
 
 export const API_BASE =
@@ -81,6 +82,10 @@ export function getImpact(params: {
 
 export function getInsights() {
   return j<Insights>("/observability/insights");
+}
+
+export function getReport() {
+  return j<Report>("/observability/report");
 }
 
 export function voiceWsUrl(): string {

@@ -13,7 +13,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models import Conversation, Escalation, PendingAction, TraceStep
+from app.db.models import Conversation, Escalation, EvalRun, PendingAction, TraceStep
 from app.observability import analytics
 
 router = APIRouter(prefix="/observability", tags=["observability"])
@@ -139,6 +139,26 @@ def impact(
 @router.get("/insights")
 def insights(db: Session = Depends(get_db)) -> dict:
     return analytics.insights(db)
+
+
+@router.get("/report")
+def report(db: Session = Depends(get_db)) -> dict:
+    """Latest stored results for each benchmark, for the in-app /report page.
+    Populated by `python -m eval.run`, `eval.retrieval`, `eval.reliability`."""
+    def latest(mode: str):
+        return db.scalar(select(EvalRun).where(EvalRun.mode == mode)
+                         .order_by(EvalRun.created_at.desc()).limit(1))
+
+    prod = latest("production")
+    retr = latest("retrieval")
+    rel = latest("reliability")
+    return {
+        "scorecard": ({"metrics": prod.metrics, "total": prod.total,
+                       "created_at": prod.created_at.isoformat() if prod.created_at else None}
+                      if prod else None),
+        "retrieval": (retr.metrics if retr else None),
+        "reliability": (rel.metrics if rel else None),
+    }
 
 
 @router.post("/reset")

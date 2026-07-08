@@ -150,3 +150,45 @@ export interface Insights {
   };
   insights: InsightCard[];
 }
+
+export interface Dims {
+  n?: number;
+  resolution_success: number;
+  policy_adherence: number;
+  groundedness: number;
+  tone: number;
+  overall: number;
+}
+
+export interface RetrievalConfig {
+  "recall@1": number;
+  "recall@3": number;
+  "recall@5": number;
+  mrr: number;
+  abstention: number;
+}
+
+export interface Report {
+  scorecard: {
+    total: number;
+    created_at: string | null;
+    metrics: {
+      by_category: Record<string, Dims>;
+      overall: Dims;
+      ragas: { faithfulness: number; answer_relevance: number; context_precision: number };
+      naive_overall: Dims | null;
+    };
+  } | null;
+  retrieval: {
+    n: number;
+    n_off: number;
+    vector_only: RetrievalConfig;
+    hybrid_rrf: RetrievalConfig;
+  } | null;
+  reliability: {
+    provider: string;
+    n: number;
+    off: { success_rate: number; pass_k: number; failure_modes: Record<string, number> };
+    on: { success_rate: number; pass_k: number; failure_modes: Record<string, number> };
+  } | null;
+}
