@@ -2,6 +2,8 @@ import type {
   ChatResponse,
   ConversationDetail,
   ConversationSummary,
+  Impact,
+  Insights,
   Metrics,
   PendingAction,
 } from "./types";
@@ -65,6 +67,20 @@ export function rejectAction(id: string) {
 
 export function resetDemo() {
   return j<{ cleared: number }>("/observability/reset", { method: "POST" });
+}
+
+export function getImpact(params: {
+  monthly_volume?: number;
+  human_cost_per_ticket?: number;
+  human_minutes_per_ticket?: number;
+} = {}) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v != null && q.set(k, String(v)));
+  return j<Impact>(`/observability/impact?${q.toString()}`);
+}
+
+export function getInsights() {
+  return j<Insights>("/observability/insights");
 }
 
 export function simulateStreamUrl(limit = 20) {

@@ -109,3 +109,44 @@ export interface PendingAction {
   conversation_id: string | null;
   created_at: string | null;
 }
+
+export interface Impact {
+  total: number;
+  assumptions: {
+    human_cost_per_ticket: number;
+    human_minutes_per_ticket: number;
+    monthly_volume: number;
+  };
+  autonomous_resolution_rate: number;
+  deflection_rate: number;
+  avg_agent_minutes: number;
+  avg_agent_cost: number;
+  minutes_saved_per_ticket: number;
+  cost_saved_per_ticket: number;
+  total_cost_saved_window: number;
+  projected_monthly_savings: number;
+  projected_annual_savings: number;
+  series: { i: number; resolution_rate: number; cost_usd: number }[];
+  volume_by_channel: { channel: string; count: number }[];
+  savings_curve: { volume: number; monthly_savings: number }[];
+}
+
+export interface InsightCard {
+  title: string;
+  recommendation: string;
+  metric_label: string;
+  metric_value: string;
+}
+
+export interface Insights {
+  aggregates: {
+    total_conversations: number;
+    top_categories: { name: string; count: number }[];
+    top_escalation_reasons: { name: string; count: number }[];
+    most_used_tools: { name: string; count: number }[];
+    weak_retrieval_questions: number;
+    refused_or_blocked: number;
+    escalations: number;
+  };
+  insights: InsightCard[];
+}

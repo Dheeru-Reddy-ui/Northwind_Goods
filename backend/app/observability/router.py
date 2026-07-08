@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.db.models import Conversation, Escalation, PendingAction, TraceStep
+from app.observability import analytics
 
 router = APIRouter(prefix="/observability", tags=["observability"])
 
@@ -123,6 +124,21 @@ def metrics(db: Session = Depends(get_db), hours: int = Query(720, ge=1)) -> dic
         "by_category": sorted(by_cat.values(), key=lambda d: -d["count"]),
         "by_channel": list(by_chan.values()),
     }
+
+
+@router.get("/impact")
+def impact(
+    db: Session = Depends(get_db),
+    human_cost_per_ticket: float = Query(6.0, ge=0),
+    human_minutes_per_ticket: float = Query(6.0, ge=0),
+    monthly_volume: int = Query(5000, ge=0),
+) -> dict:
+    return analytics.impact(db, human_cost_per_ticket, human_minutes_per_ticket, monthly_volume)
+
+
+@router.get("/insights")
+def insights(db: Session = Depends(get_db)) -> dict:
+    return analytics.insights(db)
 
 
 @router.post("/reset")

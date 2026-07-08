@@ -12,6 +12,7 @@ import { ConversationsTable } from "@/components/ops/conversations-table";
 import { TraceTimeline } from "@/components/ops/trace-timeline";
 import { PendingApprovals } from "@/components/ops/pending-approvals";
 import { SimulationControl } from "@/components/ops/simulation-control";
+import { OpsTabs } from "@/components/ops/ops-tabs";
 import { Card, Eyebrow } from "@/components/ui";
 import type {
   ConversationDetail,
@@ -63,6 +64,9 @@ export default function OpsPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+      <div className="mb-3">
+        <OpsTabs />
+      </div>
       {/* control bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>

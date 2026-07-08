@@ -35,6 +35,10 @@ test set so the ops dashboard is never empty.
 3. **Run simulation** — replays 50 golden tickets through the agent live;
    conversations appear, metrics climb, escalations and approvals show up. "Reset
    demo" clears it.
+4. **Impact & Insights** (`/ops/impact`, `/ops/insights`) — ROI numbers that
+   recompute as you change the human-agent cost assumptions, and data-grounded
+   recommendation cards generated only from the real aggregates (every figure is
+   shown, none invented).
 
 ---
 
@@ -205,8 +209,9 @@ Built and verified phase by phase — each layer works before the next is added:
 | 5 | Observability + tracing (per-step latency/cost, metrics API) | ✅ |
 | 6 | Frontend (chat + ops dashboard + trace timeline + simulation) | ✅ |
 | 7 | Live streaming agent reasoning (glass-box) | ✅ |
+| 9 | Impact/ROI + insights analytics | ✅ |
 | 10 | Docker + production hygiene (rate limit, cost cap) + docs | ✅ |
 | 11 | Engineered depth — retrieval ablation ([BENCHMARKS.md](BENCHMARKS.md)) | ✅ |
 
-Voice (Phase 8) and the impact/insights analytics (Phase 9) are architected for
-but not built here — voice needs live STT/TTS keys and audio infra.
+Voice (Phase 8) is architected for but not built here — it needs live STT/TTS
+keys and audio infrastructure.
