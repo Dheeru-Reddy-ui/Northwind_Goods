@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.config import settings
 from app.db.database import init_db
+from app.routers.actions import router as actions_router
 from app.routers.chat import router as chat_router
 from app.store.router import router as store_router
 
@@ -67,3 +68,4 @@ def root() -> dict:
 
 app.include_router(store_router)
 app.include_router(chat_router)
+app.include_router(actions_router)

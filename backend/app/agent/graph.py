@@ -152,8 +152,14 @@ def run_agent(db: Session, session_id: str, message: str, channel: str = "chat",
     gout = guardrails.output_guardrail(reply, tool_calls_made)
     if gout.blocked:
         reply = gout.safe_reply
+        # An ungrounded action claim is a real failure — hand it to a human.
+        if gout.category in ("groundedness", "leakage"):
+            execute_tool(ctx, "escalate_to_human",
+                         {"reason": f"Output guardrail: {gout.reason}",
+                          "summary": f"Agent reply failed the {gout.category} check on {session_id}; routed to a human."})
     tracer.step("guardrail", "Output safety check",
-                {"verdict": "blocked" if gout.blocked else "ok", "reason": gout.reason})
+                {"verdict": "blocked" if gout.blocked else "ok",
+                 "category": gout.category, "reason": gout.reason})
 
     tracer.step("message", "Agent reply", {"role": "assistant", "text": reply})
 
