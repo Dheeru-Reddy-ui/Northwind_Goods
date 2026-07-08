@@ -7,6 +7,7 @@ import clsx from "clsx";
 
 const LINKS = [
   { href: "/", label: "Chat" },
+  { href: "/voice", label: "Voice" },
   { href: "/ops", label: "Dashboard" },
 ];
 

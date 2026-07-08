@@ -83,6 +83,14 @@ export function getInsights() {
   return j<Insights>("/observability/insights");
 }
 
+export function voiceWsUrl(): string {
+  return API_BASE.replace(/^http/, "ws") + "/voice/ws";
+}
+
+export function getVoiceConfig() {
+  return j<{ stt: string; tts: string; server_audio: boolean }>("/voice/config");
+}
+
 export function simulateStreamUrl(limit = 20) {
   return `${API_BASE}/simulate/stream?limit=${limit}`;
 }

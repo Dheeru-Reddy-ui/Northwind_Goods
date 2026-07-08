@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # --- Retrieval ---
     cohere_api_key: str | None = None
 
+    # --- Voice (STT / TTS) ---
+    deepgram_api_key: str | None = None
+    openai_api_key: str | None = None      # Whisper STT fallback
+    elevenlabs_api_key: str | None = None
+
     # --- Tracing ---
     langsmith_api_key: str | None = None
     langsmith_project: str = "northwind-support-ai"

@@ -42,6 +42,7 @@ export const STEP_META: Record<string, { color: string; glyph: string }> = {
   guardrail: { color: "var(--text-dim)", glyph: "▣" },
   escalation: { color: "var(--escalated)", glyph: "▲" },
   approval_gate: { color: "var(--pending)", glyph: "◈" },
+  audio: { color: "var(--accent)", glyph: "♪" },
   message: { color: "var(--text-faint)", glyph: "●" },
 };
 
