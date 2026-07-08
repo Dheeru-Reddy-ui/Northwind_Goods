@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     session_cost_cap_usd: float = 0.50
     max_tool_iterations: int = 6
 
+    # Reliability safeguards (Track A). When on, irreversible actions require the
+    # agent to have verified eligibility first — enforced at the tool layer, not
+    # just requested in the prompt. Toggle off to A/B the reliability benchmark.
+    reliability_fixes: bool = True
+
     # --- App ---
     cors_origins: str = "http://localhost:3000"
 

@@ -92,14 +92,41 @@ production agent scores 1.00 on groundedness while the naive one scores 0.84.
 
 ---
 
-## 4. Reliability note
+## 4. Reliability benchmark (Track A — τ-bench style)
 
-The offline deterministic engine is 100% consistent by construction (same input
-→ same tool sequence), so a run-to-run consistency benchmark (τ-bench style
-pass^k) is trivially 1.0 for it. The eval harness (`eval/run.py`) is built to
-run N times per ticket and is the place that measurement plugs in once the
-`ANTHROPIC_API_KEY` (non-deterministic Claude) path is enabled — the interesting
-non-determinism story lives on the LLM path, and the harness is ready for it.
+**Method.** Each golden task is run N times (`eval/reliability.py`). We report
+success rate and **consistency = pass^k** (the fraction of tasks that succeed in
+*all* k runs) plus a k-run success histogram and a failure-mode taxonomy
+(`wrong_tool`, `bad_tool_args`, `loop_or_timeout`, `gave_up`, `policy_violation`,
+`wrong_answer`) auto-classified from the trace. It A/Bs a reliability
+safeguard (`reliability_fixes`): tool-layer enforcement that eligibility is
+verified *before* any irreversible refund executes — not merely requested in the
+prompt (a refund tool call without a prior `check_refund_eligibility` this turn
+returns `needs_verification` and forces the check).
+
+**Offline baseline (deterministic engine, N=5, 50 tasks):**
+
+| config      | success_rate | pass^k (consistency) |
+|-------------|-------------:|---------------------:|
+| fixes OFF   | 0.98         | 0.98                 |
+| fixes ON    | 0.98         | 0.98                 |
+
+k-run distribution: `{5: 49, 0: 1}` — every task either passes all 5 runs or
+none. That all-or-nothing shape is the point: the deterministic engine has **zero
+run-to-run variance**, so consistency equals success and the safeguard shows no
+delta (it always verified first anyway). This is the honest control.
+
+**Where it gets interesting.** Non-determinism — and therefore the gap between
+success rate and consistency, and the payoff from the safeguard — only appears
+on the Claude path. Set `ANTHROPIC_API_KEY` in `backend/.env` and run:
+
+```bash
+.venv/Scripts/python -m eval.reliability --n 10   # LLM-path pass^k + failure taxonomy
+.venv/Scripts/python -m eval.run                  # LLM-path resolution scorecard
+```
+
+The harness prints the provider it's measuring and A/Bs the safeguard, so the
+before/after (success + consistency + failure modes) drops out directly.
 
 ---
 

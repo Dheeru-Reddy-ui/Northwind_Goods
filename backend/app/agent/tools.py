@@ -34,6 +34,7 @@ class ToolContext:
     actions: list[dict] = field(default_factory=list)         # executed -> chips
     pending: list[dict] = field(default_factory=list)         # awaiting approval
     escalations: list[dict] = field(default_factory=list)
+    called_tools: set[str] = field(default_factory=set)       # tools used this turn
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +100,14 @@ def _check_refund_eligibility(ctx: ToolContext, order_id: str) -> dict:
 
 
 def _process_refund(ctx: ToolContext, order_id: str, amount_cents: int, reason: str = "") -> dict:
+    from app.config import get_settings
+
+    # Reliability safeguard (Track A): require eligibility to have been verified
+    # this turn before any refund executes — enforced here, not just in the prompt.
+    if get_settings().reliability_fixes and "check_refund_eligibility" not in ctx.called_tools:
+        return {"status": "needs_verification",
+                "reason": "Call check_refund_eligibility for this order before processing a refund."}
+
     order = service.get_order(ctx.db, order_id)
     eligible, why = policies.is_refund_eligible(order)
     if not eligible:
@@ -228,7 +237,9 @@ def execute_tool(ctx: ToolContext, name: str, tool_input: dict) -> dict:
     except Exception as e:
         return {"error": f"Invalid arguments for {name}: {e}"}
     try:
-        return spec.executor(ctx, **validated.model_dump())
+        result = spec.executor(ctx, **validated.model_dump())
+        ctx.called_tools.add(name)
+        return result
     except service.StoreError as e:
         return {"error": e.message, "code": e.code}
     except Exception as e:  # never crash the loop on a tool failure
