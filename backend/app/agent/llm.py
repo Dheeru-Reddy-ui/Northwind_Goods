@@ -123,28 +123,39 @@ class DeterministicProvider:
 
 
 def _to_anthropic_messages(messages: list[dict]) -> list[dict]:
-    """Convert the provider-agnostic message list to Anthropic content blocks."""
+    """Convert the provider-agnostic message list to Anthropic content blocks.
+
+    Consecutive tool results are merged into ONE user message (Claude may emit
+    several tool_use blocks in a single turn, and the API requires their
+    tool_result blocks together in the following user message, not as separate
+    consecutive user messages).
+    """
     out: list[dict] = []
-    for m in messages:
+    i = 0
+    while i < len(messages):
+        m = messages[i]
         role = m["role"]
         if role == "user":
             out.append({"role": "user", "content": m["content"]})
+            i += 1
         elif role == "assistant":
-            content = []
+            content: list[dict] = []
             if m.get("content"):
                 content.append({"type": "text", "text": m["content"]})
             for tc in m.get("tool_calls", []):
                 content.append({"type": "tool_use", "id": tc.id, "name": tc.name, "input": tc.input})
-            out.append({"role": "assistant", "content": content})
+            out.append({"role": "assistant", "content": content or [{"type": "text", "text": "…"}]})
+            i += 1
         elif role == "tool":
-            out.append({
-                "role": "user",
-                "content": [{
-                    "type": "tool_result",
-                    "tool_use_id": m["tool_call_id"],
-                    "content": str(m["content"]),
-                }],
-            })
+            blocks = []
+            while i < len(messages) and messages[i]["role"] == "tool":
+                tm = messages[i]
+                blocks.append({"type": "tool_result", "tool_use_id": tm["tool_call_id"],
+                               "content": str(tm["content"])})
+                i += 1
+            out.append({"role": "user", "content": blocks})
+        else:
+            i += 1
     return out
 
 
