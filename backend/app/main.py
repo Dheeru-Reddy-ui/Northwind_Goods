@@ -17,6 +17,7 @@ from app.db.database import init_db
 from app.observability.router import router as observability_router
 from app.routers.actions import router as actions_router
 from app.routers.chat import router as chat_router
+from app.routers.simulate import router as simulate_router
 from app.store.router import router as store_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -71,3 +72,4 @@ app.include_router(store_router)
 app.include_router(chat_router)
 app.include_router(actions_router)
 app.include_router(observability_router)
+app.include_router(simulate_router)

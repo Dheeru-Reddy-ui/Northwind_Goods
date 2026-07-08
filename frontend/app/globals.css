@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Design tokens — graphite instrument base, iris brand, amber "live" accent.
+   Precision instrument for autonomous support. Dark-first.
+   ============================================================================ */
+:root {
+  /* Base — graphite instrument */
+  --bg: #10131c;
+  --surface: #171b27;
+  --surface-2: #1f2532;
+  --border: #2a3141;
+  --text: #e8ebf2;
+  --text-dim: #8a93a7;
+  --text-faint: #5c6577;
+
+  /* Chat surface — same theme, more air */
+  --chat-surface: #1a1f2d;
+  --bubble-agent: #1f2532;
+  --bubble-user: #2b2f6b;
+
+  /* Brand — iris */
+  --primary: #6e6bf2;
+  --primary-hover: #5a57e0;
+  --primary-tint: rgba(110, 107, 242, 0.12);
+
+  /* Accent — amber (live / in-progress) */
+  --accent: #f2b45c;
+  --accent-tint: rgba(242, 180, 92, 0.14);
+
+  /* Status semantics */
+  --resolved: #35c08e;
+  --escalated: #f0616d;
+  --pending: #f2b45c;
+  --info: #56a8f0;
+
+  /* Type */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+}
+
+/* Optional light mode — invert neutrals, keep brand/status hues. */
+:root[data-theme="light"] {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f7;
+  --border: #d9dee9;
+  --text: #171b27;
+  --text-dim: #5c6577;
+  --text-faint: #8a93a7;
+  --chat-surface: #ffffff;
+  --bubble-agent: #eef1f7;
+  --bubble-user: #e0e0fb;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Eyebrow / label */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+/* Focus ring — visible, iris */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+/* Trace spine draw animation (respects reduced motion below) */
+@keyframes drawSpine {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.spine-draw {
+  transform-origin: top;
+  animation: drawSpine 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .spine-draw {
+    animation: none;
+  }
+}
