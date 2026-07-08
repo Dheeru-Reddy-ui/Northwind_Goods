@@ -45,6 +45,12 @@ GREETING_MARKERS = (
     "hello", "hi ", "hey", "good morning", "good afternoon", "good evening",
     "can you help", "what can you do", "who are you", "what do you do", "thanks", "thank you",
 )
+# Informational framing -> a policy question, not an action request.
+QUESTION_MARKERS = (
+    "how long", "how many", "how do", "how much", "what is", "what's", "what are",
+    "when will", "when do", "do you", "are there", "is there", "can i return",
+    "can i get", "what happens", "policy", "how does",
+)
 
 
 def _norm_order_id(text: str) -> str | None:
@@ -67,18 +73,28 @@ def _detect_intent(text: str) -> str:
     # Angry + multi-part complaint -> escalate.
     if _has(t, DISTRESS_MARKERS) and (_has(t, REFUND_MARKERS) or t.count("order") > 1):
         return "escalation"
+    # With a concrete order id, treat it as an action/status request on that order.
+    if _norm_order_id(t):
+        if _has(t, REFUND_MARKERS):
+            return "refund"
+        if _has(t, ADDRESS_MARKERS):
+            return "address_change"
+        if _has(t, CANCEL_MARKERS):
+            return "cancel"
+        return "order_status"
+
+    # No order id: an informational question about policy beats an action verb
+    # ("how long do refunds take" is a question, "I want a refund" is an action).
+    if _has(t, QUESTION_MARKERS) or _has(t, POLICY_MARKERS):
+        return "policy_qa"
     if _has(t, REFUND_MARKERS):
         return "refund"
-    if _has(t, ADDRESS_MARKERS) and _norm_order_id(t):
-        return "address_change"
-    if _has(t, CANCEL_MARKERS) and _norm_order_id(t):
+    if _has(t, CANCEL_MARKERS):
         return "cancel"
-    # Anything with an order id or a status word is a status request (asks for
-    # the id if it's missing).
-    if _norm_order_id(t) or _has(t, STATUS_MARKERS):
+    if _has(t, ADDRESS_MARKERS):
+        return "address_change"
+    if _has(t, STATUS_MARKERS):
         return "order_status"
-    if _has(t, POLICY_MARKERS):
-        return "policy_qa"
     if _has(t, GREETING_MARKERS):
         return "smalltalk"
     if "?" in t:
