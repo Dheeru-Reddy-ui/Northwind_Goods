@@ -1,0 +1,31 @@
+# Render Blueprint — one-click deploy of both services.
+# In the Render dashboard: New > Blueprint, point at this repo. Render supports
+# WebSockets + SSE on web services (needed for streaming + voice).
+services:
+  - type: web
+    name: northwind-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: CORS_ORIGINS
+        value: https://northwind-frontend.onrender.com
+      # Optional real providers — set in the dashboard, never commit:
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false
+      # - key: DATABASE_URL
+      #   sync: false
+
+  - type: web
+    name: northwind-frontend
+    runtime: node
+    plan: free
+    buildCommand: cd frontend && npm ci && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE
+        value: https://northwind-backend.onrender.com

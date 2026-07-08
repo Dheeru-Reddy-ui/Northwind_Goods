@@ -153,14 +153,18 @@ docker compose up --build      # backend :8000, frontend :3000
 
 ## Deployment
 
-- **Backend** → a host that supports long-lived SSE (Fly.io / Render). The
-  `Dockerfile` seeds + ingests on boot. Set `CORS_ORIGINS` to the frontend URL;
-  optionally set `DATABASE_URL` (Supabase), `ANTHROPIC_API_KEY`, `COHERE_API_KEY`,
-  `LANGSMITH_API_KEY`.
-- **Frontend** → Vercel (or its `Dockerfile`). Set `NEXT_PUBLIC_API_BASE` to the
-  backend URL.
-- Secrets are read from env and never committed (`.env` is gitignored;
-  `.env.example` documents every variable).
+Full step-by-step guide in **[DEPLOY.md](DEPLOY.md)**. Two supported paths, both
+with config included:
+
+- **Fly.io (backend) + Vercel (frontend)** — `backend/fly.toml` + Vercel
+  zero-config. Fly supports the long-lived SSE + WebSocket connections the
+  streaming reasoning and voice channel need.
+- **Render (both, one blueprint)** — `render.yaml` provisions both services.
+
+The backend `Dockerfile` seeds + ingests on boot. Set `CORS_ORIGINS` to the
+frontend URL and `NEXT_PUBLIC_API_BASE` to the backend URL; all provider keys
+are optional. Secrets are read from env and never committed (`.env` gitignored;
+`backend/.env.example` documents every variable). Local parity: `docker compose up --build`.
 
 ## Design decisions & trade-offs
 

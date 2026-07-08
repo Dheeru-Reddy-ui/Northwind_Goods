@@ -1,0 +1,36 @@
+# Fly.io config for the FastAPI agent backend.
+# Fly supports long-lived SSE + WebSocket connections (needed for streaming
+# reasoning and the voice channel). Deploy with:  fly launch --copy-config
+app = "northwind-support-ai"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  # Point this at your deployed frontend origin (Vercel URL).
+  CORS_ORIGINS = "https://northwind-support-ai.vercel.app"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  # Keep one machine warm so SSE/WebSocket connections aren't cold-started.
+  # Set min_machines_running = 0 to save cost (adds a cold start on first hit).
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# NOTE: the container seeds SQLite on boot, which is ephemeral (resets on
+# redeploy). For persistent data attach a volume or set DATABASE_URL to Supabase.
