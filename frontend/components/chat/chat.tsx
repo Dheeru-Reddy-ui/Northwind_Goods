@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sendChat } from "@/lib/api";
+import { streamChat } from "@/lib/api";
 import { MessageBubble, type ChatMessage } from "./message";
+import { ActivityStrip, type Activity } from "./activity-strip";
 
 const SCENARIOS: { label: string; message: string; tone?: string }[] = [
   { label: "Track order", message: "Where is my order ORD-00012?" },
@@ -25,31 +26,58 @@ export function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState<Activity[]>([]);
+  const [streamingText, setStreamingText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, busy]);
+  }, [messages, busy, activity, streamingText]);
 
-  async function send(text: string) {
+  function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", text: trimmed }]);
     setBusy(true);
-    try {
-      const res = await sendChat(trimmed, sessionId);
-      setSessionId(res.session_id);
-      setMessages((m) => [...m, { role: "agent", text: res.reply, meta: res }]);
-    } catch (e) {
-      setMessages((m) => [
-        ...m,
-        { role: "agent", text: "Sorry — I couldn't reach the support service. Is the backend running on :8000?" },
-      ]);
-    } finally {
-      setBusy(false);
-    }
+    setActivity([]);
+    setStreamingText("");
+
+    streamChat(trimmed, sessionRef.current, {
+      onActivity: ({ label, status }) => {
+        setActivity((prev) => {
+          if (status === "active") return [...prev, { label, done: false }];
+          const next = [...prev];
+          for (let i = next.length - 1; i >= 0; i--) {
+            if (next[i].label === label && !next[i].done) {
+              next[i] = { ...next[i], done: true };
+              break;
+            }
+          }
+          return next;
+        });
+      },
+      onToken: (t) => setStreamingText((s) => s + t),
+      onDone: (res) => {
+        sessionRef.current = res.session_id;
+        setSessionId(res.session_id);
+        setMessages((m) => [...m, { role: "agent", text: res.reply, meta: res }]);
+        setActivity([]);
+        setStreamingText("");
+        setBusy(false);
+      },
+      onError: () => {
+        setMessages((m) => [
+          ...m,
+          { role: "agent", text: "Sorry — I couldn't reach the support service. Is the backend running on :8000?" },
+        ]);
+        setActivity([]);
+        setStreamingText("");
+        setBusy(false);
+      },
+    });
   }
 
   return (
@@ -61,9 +89,28 @@ export function Chat() {
             <MessageBubble key={i} msg={m} />
           ))}
           {busy && (
-            <div className="flex items-center gap-2 text-[13px] text-text-dim">
-              <span className="h-2 w-2 rounded-full animate-pulse-iris" style={{ background: "var(--primary)" }} />
-              Agent is working…
+            <div className="flex flex-col gap-3">
+              <ActivityStrip steps={activity} />
+              {streamingText && (
+                <div className="flex animate-fade-slide justify-start">
+                  <div
+                    className="max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-2.5 text-[14px] leading-relaxed"
+                    style={{ background: "var(--bubble-agent)", color: "var(--text)", borderTopLeftRadius: 4 }}
+                  >
+                    {streamingText}
+                    <span
+                      className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-0.5 animate-pulse-iris"
+                      style={{ background: "var(--primary)" }}
+                    />
+                  </div>
+                </div>
+              )}
+              {activity.length === 0 && !streamingText && (
+                <div className="flex items-center gap-2 text-[13px] text-text-dim">
+                  <span className="h-2 w-2 rounded-full animate-pulse-iris" style={{ background: "var(--primary)" }} />
+                  Agent is working…
+                </div>
+              )}
             </div>
           )}
         </div>

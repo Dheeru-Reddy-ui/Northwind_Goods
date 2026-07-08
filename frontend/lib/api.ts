@@ -70,3 +70,43 @@ export function resetDemo() {
 export function simulateStreamUrl(limit = 20) {
   return `${API_BASE}/simulate/stream?limit=${limit}`;
 }
+
+export interface StreamHandlers {
+  onActivity: (a: { label: string; status: "active" | "done" }) => void;
+  onToken: (t: string) => void;
+  onDone: (r: ChatResponse & { session_id: string }) => void;
+  onError: () => void;
+}
+
+/** Open a streaming chat turn over SSE. Returns a function to close the stream. */
+export function streamChat(
+  message: string,
+  sessionId: string | null,
+  h: StreamHandlers
+): () => void {
+  const q = new URLSearchParams({ message });
+  if (sessionId) q.set("session_id", sessionId);
+  const es = new EventSource(`${API_BASE}/chat/stream?${q.toString()}`);
+  let finished = false;
+
+  es.addEventListener("activity", (e) => h.onActivity(JSON.parse((e as MessageEvent).data)));
+  es.addEventListener("token", (e) => h.onToken(JSON.parse((e as MessageEvent).data).t));
+  es.addEventListener("done", (e) => {
+    finished = true;
+    h.onDone(JSON.parse((e as MessageEvent).data));
+    es.close();
+  });
+  es.addEventListener("failed", () => {
+    finished = true;
+    h.onError();
+    es.close();
+  });
+  es.onerror = () => {
+    if (!finished) {
+      finished = true;
+      h.onError();
+      es.close();
+    }
+  };
+  return () => es.close();
+}
