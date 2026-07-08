@@ -15,6 +15,7 @@ from app import __version__
 from app.config import settings
 from app.db.database import init_db
 from app.observability.router import router as observability_router
+from app.rate_limit import RateLimitMiddleware
 from app.routers.actions import router as actions_router
 from app.routers.chat import router as chat_router
 from app.routers.chat_stream import router as chat_stream_router
@@ -30,6 +31,7 @@ app = FastAPI(
     description="Autonomous e-commerce customer support agent for Northwind Goods.",
 )
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

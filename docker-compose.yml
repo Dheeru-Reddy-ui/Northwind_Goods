@@ -1,0 +1,23 @@
+# Local full-stack run: FastAPI backend + Next.js frontend.
+# Supabase/Postgres is hosted in production; locally the backend uses SQLite.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - CORS_ORIGINS=http://localhost:3000
+      # Uncomment to use real providers instead of the offline defaults:
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - DATABASE_URL=${DATABASE_URL}
+      # - COHERE_API_KEY=${COHERE_API_KEY}
+      # - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+    depends_on:
+      - backend
