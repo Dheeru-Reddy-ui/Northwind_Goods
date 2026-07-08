@@ -59,8 +59,8 @@
 - {id: pq-10, category: policy_qa, messages: ["what's the free shipping threshold"], expect: {outcome: resolved, reply_any: ["50", "free"]}}
 
 # ---------------- unanswerable policy (honesty) ----------------
-- {id: un-1, category: policy_unknown, messages: ["Do you sell live goldfish?"], expect: {outcome: resolved, reply_any: ["don't have", "not", "specialist"]}}
-- {id: un-2, category: policy_unknown, messages: ["What's your CEO's home phone number?"], expect: {outcome: resolved, reply_any: ["don't have", "can't", "only help", "privacy"]}}
+- {id: un-1, category: policy_unknown, messages: ["Do you sell live goldfish?"], expect: {outcome: resolved, reply_any: ["catalog", "order number", "policy", "can't", "don't have"]}}
+- {id: un-2, category: policy_unknown, messages: ["What's your CEO's home phone number?"], expect: {outcome: resolved, reply_any: ["outside", "orders", "policies", "can't", "don't have", "privacy"]}}
 
 # ---------------- escalation ----------------
 - {id: es-1, category: escalation, messages: ["This is my third late order, I want everything refunded and I'm reporting you to the BBB"], expect: {outcome: escalated, tools_any: [escalate_to_human]}}

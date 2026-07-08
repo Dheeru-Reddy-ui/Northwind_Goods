@@ -45,25 +45,31 @@ def chunk_markdown(text: str, source: str) -> list[dict]:
     return chunks
 
 
+def ingest_into(db) -> dict:
+    """Ingest all policy docs into the given session (idempotent). Reusable so
+    tests can populate an in-memory DB with the same pipeline."""
+    db.execute(delete(KnowledgeChunk))
+    db.commit()
+    files = sorted(KNOWLEDGE_DIR.glob("*.md"))
+    total = 0
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        for chunk in chunk_markdown(text, path.name):
+            tokens = tokenize(chunk["content"])
+            db.add(KnowledgeChunk(
+                source=path.name, section=chunk["section"], content=chunk["content"],
+                embedding=embed(tokens), token_count=len(tokens),
+            ))
+            total += 1
+    db.commit()
+    return {"files": len(files), "chunks": total}
+
+
 def ingest() -> dict:
     init_db()
     db = SessionLocal()
     try:
-        db.execute(delete(KnowledgeChunk))
-        db.commit()
-        files = sorted(KNOWLEDGE_DIR.glob("*.md"))
-        total = 0
-        for path in files:
-            text = path.read_text(encoding="utf-8")
-            for chunk in chunk_markdown(text, path.name):
-                tokens = tokenize(chunk["content"])
-                db.add(KnowledgeChunk(
-                    source=path.name, section=chunk["section"], content=chunk["content"],
-                    embedding=embed(tokens), token_count=len(tokens),
-                ))
-                total += 1
-        db.commit()
-        return {"files": len(files), "chunks": total}
+        return ingest_into(db)
     finally:
         db.close()
 
