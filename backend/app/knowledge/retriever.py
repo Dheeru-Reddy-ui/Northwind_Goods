@@ -100,6 +100,21 @@ def search(db: Session, query: str, top_k: int = 3) -> list[dict]:
     return passages[:top_k]
 
 
+def search_vector_only(db: Session, query: str, top_k: int = 3) -> list[dict]:
+    """Naive baseline retrieval: vector cosine only, no fusion, no threshold.
+
+    Always returns top_k (even for off-topic queries) — used by the eval naive
+    baseline to demonstrate why the hybrid + threshold pipeline is better.
+    """
+    chunks = list(db.scalars(select(KnowledgeChunk)).all())
+    if not chunks:
+        return []
+    qvec = embed(tokenize(query))
+    scored = sorted(chunks, key=lambda c: cosine(qvec, c.embedding or []), reverse=True)
+    return [{"source": c.source, "section": c.section, "content": c.content,
+             "snippet": _snippet(c.content)} for c in scored[:top_k]]
+
+
 def _snippet(content: str, max_chars: int = 600) -> str:
     """Drop the 'Title — Section' prefix line; return the body, trimmed."""
     body = content.split("\n", 1)[1] if "\n" in content else content

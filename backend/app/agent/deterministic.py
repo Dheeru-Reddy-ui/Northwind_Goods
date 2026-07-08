@@ -27,6 +27,7 @@ ESCALATION_MARKERS = (
     "lawyer", "sue you", "i'll sue", "legal action", "attorney", "chargeback", "charge back",
     "reporting you", "report you", "bbb", "better business bureau", "fraud", "press charges",
     "speak to a human", "talk to a human", "speak to a manager", "real person", "human agent",
+    "manager", "supervisor", "escalate", "demand a", "speak to someone",
 )
 DISTRESS_MARKERS = (
     "unacceptable", "ridiculous", "furious", "outrageous", "worst", "terrible", "disgusting",
@@ -77,7 +78,8 @@ def _detect_intent(text: str) -> str:
     if _norm_order_id(t):
         if _has(t, REFUND_MARKERS):
             return "refund"
-        if _has(t, ADDRESS_MARKERS):
+        # Address markers, or a "to <street address>" phrase we can extract.
+        if _has(t, ADDRESS_MARKERS) or _extract_address(t):
             return "address_change"
         if _has(t, CANCEL_MARKERS):
             return "cancel"
@@ -321,6 +323,10 @@ def _extract_address(text: str) -> str | None:
         idx = text.lower().find(kw)
         if idx != -1:
             candidate = text[idx + len(kw):].strip(" .")
+            # Drop a trailing "instead"/"please" and require a street-like value.
+            for tail in (" instead", " please", ", please"):
+                if candidate.lower().endswith(tail):
+                    candidate = candidate[: -len(tail)].strip(" .,")
             if len(candidate) >= 6 and any(ch.isdigit() for ch in candidate):
                 return candidate
     return None

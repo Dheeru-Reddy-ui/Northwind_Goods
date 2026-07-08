@@ -136,7 +136,7 @@ def _update_address(ctx: ToolContext, order_id: str, new_address: str) -> dict:
     except service.StoreError as e:
         return {"status": "refused", "reason": e.message}
     ctx.actions.append({"type": "address", "label": "Shipping address updated", "detail": result})
-    return {"status": "updated", **result}
+    return {**result, "status": "updated"}
 
 
 def _cancel_order(ctx: ToolContext, order_id: str) -> dict:
@@ -145,7 +145,7 @@ def _cancel_order(ctx: ToolContext, order_id: str) -> dict:
     except service.StoreError as e:
         return {"status": "refused", "reason": e.message}
     ctx.actions.append({"type": "cancel", "label": f"Order {order_id} cancelled", "detail": result})
-    return {"status": "cancelled", **result}
+    return {**result, "status": "cancelled"}
 
 
 def _escalate(ctx: ToolContext, reason: str, summary: str) -> dict:
