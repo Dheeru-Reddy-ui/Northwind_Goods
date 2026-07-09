@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { streamChat } from "@/lib/api";
+import { sendChat, streamChat } from "@/lib/api";
 import { MessageBubble, type ChatMessage } from "./message";
 import { ActivityStrip, type Activity } from "./activity-strip";
 
@@ -69,13 +69,29 @@ export function Chat() {
         setBusy(false);
       },
       onError: () => {
-        setMessages((m) => [
-          ...m,
-          { role: "agent", text: "Sorry — I couldn't reach the support service. Is the backend running on :8000?" },
-        ]);
-        setActivity([]);
-        setStreamingText("");
-        setBusy(false);
+        // Streaming failed — often a free-tier cold-start. Fall back to a plain
+        // request, which waits out the wake-up, before giving up.
+        setActivity([{ label: "Waking up the demo server…", done: false }]);
+        sendChat(trimmed, sessionRef.current)
+          .then((res) => {
+            sessionRef.current = res.session_id;
+            setSessionId(res.session_id);
+            setMessages((m) => [...m, { role: "agent", text: res.reply, meta: res }]);
+          })
+          .catch(() => {
+            setMessages((m) => [
+              ...m,
+              {
+                role: "agent",
+                text: "Sorry — I couldn't reach the support service. The demo runs on a free tier that sleeps when idle; it may be waking up. Please try again in a few seconds.",
+              },
+            ]);
+          })
+          .finally(() => {
+            setActivity([]);
+            setStreamingText("");
+            setBusy(false);
+          });
       },
     });
   }

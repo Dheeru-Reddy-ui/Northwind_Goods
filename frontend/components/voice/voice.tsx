@@ -191,44 +191,62 @@ export function Voice() {
     setActivity([]);
     setPhase("connecting");
 
-    const ws = new WebSocket(voiceWsUrl());
-    wsRef.current = ws;
-    ws.onopen = () => {
-      setPhase("listening");
-      recRef.current = makeRecognition();
-      restartRecognition();
-      startAnalyser();
-    };
-    ws.onmessage = (e) => {
-      const m = JSON.parse(e.data);
-      if (m.type === "activity") {
-        setActivity((prev) => {
-          if (m.status === "active") return [...prev, { label: m.label, done: false }];
-          const next = [...prev];
-          for (let i = next.length - 1; i >= 0; i--) {
-            if (next[i].label === m.label && !next[i].done) {
-              next[i] = { ...next[i], done: true };
-              break;
-            }
-          }
-          return next;
-        });
-      } else if (m.type === "assistant_text") {
-        setTurns((t) => [...t, { role: "agent", text: m.text }]);
+    let attempt = 0;
+    const open = () => {
+      attempt += 1;
+      setPhase("connecting");
+      const ws = new WebSocket(voiceWsUrl());
+      wsRef.current = ws;
+      let opened = false;
+      ws.onopen = () => {
+        opened = true;
         setActivity([]);
-        speak(m.text);
-      } else if (m.type === "done") {
-        setMeta(m.result);
-      } else if (m.type === "error") {
-        setTurns((t) => [...t, { role: "agent", text: "Sorry, something went wrong." }]);
         setPhase("listening");
+        recRef.current = makeRecognition();
         restartRecognition();
-      }
+        startAnalyser();
+      };
+      ws.onmessage = (e) => {
+        const m = JSON.parse(e.data);
+        if (m.type === "activity") {
+          setActivity((prev) => {
+            if (m.status === "active") return [...prev, { label: m.label, done: false }];
+            const next = [...prev];
+            for (let i = next.length - 1; i >= 0; i--) {
+              if (next[i].label === m.label && !next[i].done) {
+                next[i] = { ...next[i], done: true };
+                break;
+              }
+            }
+            return next;
+          });
+        } else if (m.type === "assistant_text") {
+          setTurns((t) => [...t, { role: "agent", text: m.text }]);
+          setActivity([]);
+          speak(m.text);
+        } else if (m.type === "done") {
+          setMeta(m.result);
+        } else if (m.type === "error") {
+          setTurns((t) => [...t, { role: "agent", text: "Sorry, something went wrong." }]);
+          setPhase("listening");
+          restartRecognition();
+        }
+      };
+      ws.onclose = () => {
+        if (!activeRef.current) return;
+        if (!opened && attempt < 4) {
+          // free-tier cold start — the server is waking up; retry.
+          setActivity([{ label: "Waking up the demo server…", done: false }]);
+          setTimeout(() => {
+            if (activeRef.current) open();
+          }, 3000);
+        } else {
+          endCall();
+        }
+      };
+      ws.onerror = () => {};
     };
-    ws.onclose = () => {
-      if (activeRef.current) endCall();
-    };
-    ws.onerror = () => {};
+    open();
   }, [makeRecognition, restartRecognition, speak, startAnalyser]);
 
   const endCall = useCallback(() => {
