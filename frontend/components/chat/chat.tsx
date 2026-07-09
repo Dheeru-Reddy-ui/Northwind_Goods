@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sendChat, streamChat } from "@/lib/api";
+import { sendChat, streamChat, warmBackend } from "@/lib/api";
 import { MessageBubble, type ChatMessage } from "./message";
 import { ActivityStrip, type Activity } from "./activity-strip";
 
@@ -36,6 +36,11 @@ export function Chat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, busy, activity, streamingText]);
 
+  // Pre-warm the (possibly sleeping) free-tier backend on page load.
+  useEffect(() => {
+    warmBackend();
+  }, []);
+
   function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
@@ -69,29 +74,39 @@ export function Chat() {
         setBusy(false);
       },
       onError: () => {
-        // Streaming failed — often a free-tier cold-start. Fall back to a plain
-        // request, which waits out the wake-up, before giving up.
-        setActivity([{ label: "Waking up the demo server…", done: false }]);
-        sendChat(trimmed, sessionRef.current)
-          .then((res) => {
-            sessionRef.current = res.session_id;
-            setSessionId(res.session_id);
-            setMessages((m) => [...m, { role: "agent", text: res.reply, meta: res }]);
-          })
-          .catch(() => {
-            setMessages((m) => [
-              ...m,
-              {
-                role: "agent",
-                text: "Sorry — I couldn't reach the support service. The demo runs on a free tier that sleeps when idle; it may be waking up. Please try again in a few seconds.",
-              },
-            ]);
-          })
-          .finally(() => {
-            setActivity([]);
-            setStreamingText("");
-            setBusy(false);
-          });
+        // Streaming failed — usually the free-tier backend is asleep and Render
+        // returns 502 while it boots. Retry a plain POST with backoff (~40s) to
+        // wait out the wake-up before giving up.
+        setActivity([{ label: "Waking up the demo server… (free tier, ~30s)", done: false }]);
+        warmBackend();
+        const tryPost = (n: number) => {
+          sendChat(trimmed, sessionRef.current)
+            .then((res) => {
+              sessionRef.current = res.session_id;
+              setSessionId(res.session_id);
+              setMessages((m) => [...m, { role: "agent", text: res.reply, meta: res }]);
+              setActivity([]);
+              setStreamingText("");
+              setBusy(false);
+            })
+            .catch(() => {
+              if (n < 8) {
+                setTimeout(() => tryPost(n + 1), 5000);
+              } else {
+                setMessages((m) => [
+                  ...m,
+                  {
+                    role: "agent",
+                    text: "The demo server is taking a while to wake up (free tier). Please give it ~30 seconds and send your message again.",
+                  },
+                ]);
+                setActivity([]);
+                setStreamingText("");
+                setBusy(false);
+              }
+            });
+        };
+        tryPost(1);
       },
     });
   }

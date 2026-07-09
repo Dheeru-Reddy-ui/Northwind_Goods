@@ -26,6 +26,11 @@ async function j<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+/** Fire-and-forget ping to start waking a sleeping free-tier backend. */
+export function warmBackend(): void {
+  fetch(`${API_BASE}/health`, { cache: "no-store" }).catch(() => {});
+}
+
 export function sendChat(message: string, sessionId: string | null, channel = "chat") {
   return j<ChatResponse>("/chat", {
     method: "POST",

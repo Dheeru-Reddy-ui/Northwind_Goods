@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { voiceWsUrl } from "@/lib/api";
+import { voiceWsUrl, warmBackend } from "@/lib/api";
 import { ActivityStrip, type Activity } from "@/components/chat/activity-strip";
 import type { ChatResponse } from "@/lib/types";
 
@@ -53,6 +53,7 @@ export function Voice() {
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setSttSupported(!!SR);
+    warmBackend(); // wake the free-tier backend before the user starts a call
     return () => endCall();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
