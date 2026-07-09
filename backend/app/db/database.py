@@ -16,15 +16,29 @@ from app.config import settings
 def _normalize_url(url: str) -> str:
     """Accept the connection string Supabase/Postgres hands you verbatim.
 
-    SQLAlchemy needs the `postgresql+psycopg2://` driver prefix; Supabase gives
-    `postgresql://` (or the legacy `postgres://`). Normalize both.
+    - Adds the SQLAlchemy driver prefix (`postgresql+psycopg2://`) to Supabase's
+      `postgresql://` / legacy `postgres://`.
+    - Strips a leftover `[YOUR-PASSWORD]` placeholder bracket and percent-encodes
+      special characters in the password (Supabase passwords often contain `@`,
+      `#`, etc., which are URL delimiters), so the raw string just works.
     """
-    if url.startswith("postgresql+"):
-        return url
-    if url.startswith("postgresql://"):
-        return "postgresql+psycopg2://" + url[len("postgresql://"):]
+    from urllib.parse import quote
+
     if url.startswith("postgres://"):
-        return "postgresql+psycopg2://" + url[len("postgres://"):]
+        url = "postgresql+psycopg2://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://"):
+        url = "postgresql+psycopg2://" + url[len("postgresql://"):]
+
+    if url.startswith("postgresql+") and "@" in url:
+        scheme, sep, rest = url.partition("://")
+        userinfo, at, hostpart = rest.rpartition("@")  # last @ splits creds from host
+        if ":" in userinfo:
+            user, _, pwd = userinfo.partition(":")
+            if pwd.startswith("[") and pwd.endswith("]"):
+                pwd = pwd[1:-1]                          # leftover placeholder bracket
+            if "%" not in pwd:                           # not already URL-encoded
+                pwd = quote(pwd, safe="")
+            url = f"{scheme}{sep}{user}:{pwd}{at}{hostpart}"
     return url
 
 
