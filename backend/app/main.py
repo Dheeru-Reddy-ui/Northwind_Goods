@@ -83,6 +83,8 @@ async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
 
 @app.get("/health", tags=["meta"])
 def health() -> dict:
+    import os
+
     from sqlalchemy import text
 
     from app.db.database import engine
@@ -98,6 +100,8 @@ def health() -> dict:
         "version": __version__,
         "db": engine.url.get_backend_name(),  # "postgresql" (Supabase) or "sqlite"
         "db_ok": db_ok,
+        # diagnostic: is DATABASE_URL present in the process env? (boolean, no value)
+        "database_url_in_env": bool(os.getenv("DATABASE_URL")),
         "llm": "anthropic" if settings.llm_available else "deterministic",
     }
 
