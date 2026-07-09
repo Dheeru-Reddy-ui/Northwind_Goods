@@ -1,5 +1,8 @@
 # Northwind Support AI
 
+**▶ Live demo:** [northwind-frontend-utku.onrender.com](https://northwind-frontend-utku.onrender.com) · [API](https://northwind-backend-9e91.onrender.com/health) · [Ops dashboard](https://northwind-frontend-utku.onrender.com/ops)
+*(free tier — the first request may cold-start for ~30–60s; then click **Run simulation** on the dashboard to populate it.)*
+
 An **autonomous e-commerce customer support agent** for a fictional store,
 "Northwind Goods" — the Sierra/Decagon product category. It doesn't just answer
 questions; it **takes real actions** against a store backend (looks up orders,
