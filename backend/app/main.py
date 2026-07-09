@@ -48,23 +48,26 @@ app.add_middleware(
 
 @app.on_event("startup")
 def _startup() -> None:
-    init_db()
-    # Populate a fresh database (SQLite or Supabase) on first boot; skips when
-    # data already exists, so restarts against a persistent DB don't wipe it.
+    # Create schema + populate a fresh DB (SQLite or Supabase) on first boot;
+    # skips when data already exists. Wrapped so a DB connection problem logs
+    # clearly instead of crashing startup and silently rolling back the deploy —
+    # /health then reports db + db_ok so the issue is diagnosable remotely.
     from app.db.database import SessionLocal
     from app.knowledge.ingest import ingest_if_empty
     from app.store.seed import seed_if_empty
 
-    db = SessionLocal()
     try:
-        seeded = seed_if_empty(db)
-        ingested = ingest_if_empty(db)
-        if seeded or ingested:
-            logger.info("Bootstrapped data: seeded=%s ingested=%s", bool(seeded), bool(ingested))
-    except Exception as e:  # never let bootstrap crash startup
-        logger.warning("Startup bootstrap skipped: %s", e)
-    finally:
-        db.close()
+        init_db()
+        db = SessionLocal()
+        try:
+            seeded = seed_if_empty(db)
+            ingested = ingest_if_empty(db)
+            if seeded or ingested:
+                logger.info("Bootstrapped data: seeded=%s ingested=%s", bool(seeded), bool(ingested))
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("Startup DB init/bootstrap failed (%s: %s)", type(e).__name__, e)
     logger.info(
         "Northwind Support AI up. db=%s llm=%s",
         settings.database_url.split("://")[0].replace("+psycopg2", ""),
@@ -80,12 +83,21 @@ async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
 
 @app.get("/health", tags=["meta"])
 def health() -> dict:
+    from sqlalchemy import text
+
     from app.db.database import engine
 
+    db_ok = True
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("select 1"))
+    except Exception:
+        db_ok = False
     return {
         "status": "ok",
         "version": __version__,
         "db": engine.url.get_backend_name(),  # "postgresql" (Supabase) or "sqlite"
+        "db_ok": db_ok,
         "llm": "anthropic" if settings.llm_available else "deterministic",
     }
 
