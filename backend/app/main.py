@@ -33,10 +33,14 @@ app = FastAPI(
 )
 
 app.add_middleware(RateLimitMiddleware)
+# CORS_ORIGINS="*" opens the API to any origin (credentials must be off per the
+# CORS spec) — convenient for a public demo where the frontend URL isn't known
+# ahead of time. Otherwise, an explicit allow-list with credentials.
+_allow_all_origins = "*" in settings.cors_origin_list
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
+    allow_origins=["*"] if _allow_all_origins else settings.cors_origin_list,
+    allow_credentials=not _allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -9,8 +9,9 @@ import type {
   Report,
 } from "./types";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+// Normalize: a bare host (e.g. from Render's fromService) gets an https:// scheme.
+const _rawBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+export const API_BASE = /^https?:\/\//.test(_rawBase) ? _rawBase : `https://${_rawBase}`;
 
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

@@ -12,8 +12,10 @@ services:
     envVars:
       - key: PORT
         value: "8000"
+      # Open CORS for the demo so the frontend works regardless of its assigned
+      # Render URL. Lock this to the exact origin for a non-demo deployment.
       - key: CORS_ORIGINS
-        value: https://northwind-frontend.onrender.com
+        value: "*"
       # Optional real providers — set in the dashboard, never commit:
       # - key: ANTHROPIC_API_KEY
       #   sync: false
@@ -27,5 +29,9 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     startCommand: cd frontend && npm start
     envVars:
+      # Auto-wired to the backend's Render hostname (the frontend prepends https).
       - key: NEXT_PUBLIC_API_BASE
-        value: https://northwind-backend.onrender.com
+        fromService:
+          type: web
+          name: northwind-backend
+          property: host
