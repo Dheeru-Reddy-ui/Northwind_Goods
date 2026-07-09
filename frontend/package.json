@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "clsx": "2.1.1",
     "next": "14.2.15",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "recharts": "2.12.7",
-    "clsx": "2.1.1"
+    "recharts": "2.12.7"
   },
   "devDependencies": {
     "@types/node": "20.14.10",
@@ -21,6 +21,7 @@
     "@types/react-dom": "18.3.0",
     "autoprefixer": "10.4.19",
     "postcss": "8.4.39",
+    "puppeteer-core": "^23.11.1",
     "tailwindcss": "3.4.9",
     "typescript": "5.5.3"
   }
