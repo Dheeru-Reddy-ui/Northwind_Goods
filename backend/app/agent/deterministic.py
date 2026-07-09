@@ -51,6 +51,33 @@ DISTRESS_MARKERS = (
 INSULT_MARKERS = ("useless", "stupid", "dumb", "idiot", "you suck", "garbage", "hate you", "pathetic", "worthless")
 EMOTION_NEG = ("frustrat", "annoy", "upset", "angry", "so mad", "i'm mad", "disappointed", "unhappy",
                "not happy", "let down", "fed up", "irritat")
+# Mood / feeling detection, so the agent responds to how the customer feels.
+POSITIVE_EMOTION = ("i'm happy", "im happy", "so happy", "really happy", "i'm great", "im great",
+                    "i'm good", "im good", "doing great", "doing well", "feeling great", "feeling good",
+                    "excited", "thrilled", "wonderful", "great news", "good news", "best day", "happy today",
+                    "in a good mood", "over the moon", "made my day", "so glad", "i'm well", "great day",
+                    "good day", "lovely day", "amazing day", "having a great", "having a good", "got the job",
+                    "feeling wonderful", "feeling happy", "life is good")
+SAD_EMOTION = ("i'm sad", "im sad", "so sad", "feeling down", "feeling low", "depressed", "heartbroken",
+               "bad day", "terrible day", "awful day", "rough day", "hard day", "worst day", "not doing well",
+               "feeling awful", "feeling terrible", "i'm down", "so stressed", "stressed out", "overwhelmed",
+               "exhausted", "burnt out", "burned out", "crying", "feel like crying", "lonely", "hopeless",
+               "having a hard time", "going through a lot", "really down", "so down", "down today",
+               "feeling really down", "low today", "miserable", "feeling sad", "not okay", "not ok")
+ANXIOUS_MARKERS = ("worried", "nervous", "anxious", "scared", "afraid", "concerned", "stressing",
+                   "freaking out", "panicking", "on edge", "uneasy")
+CONFUSED_MARKERS = ("confused", "don't understand", "dont understand", "not sure what", "what do you mean",
+                    "i'm lost", "im lost", "makes no sense", "don't get it", "dont get it", "unclear",
+                    "so confusing", "bit lost", "feeling lost", "little lost", "so lost", "kinda lost",
+                    "i am lost", "totally lost")
+IMPATIENT_MARKERS = ("hurry", "taking forever", "taking too long", "taking so long", "still waiting",
+                     "how much longer", "been waiting", "waiting forever", "right now", "immediately",
+                     "come on", "hurry up")
+APOLOGETIC_MARKERS = ("sorry to bother", "sorry to ask", "sorry for asking", "hate to bother",
+                      "apologies for", "sorry if", "sorry for the trouble", "don't mean to bother")
+WELLBEING_MARKERS = ("how are you", "how're you", "how are u", "how are things", "how you doing",
+                     "how are you doing", "how have you been", "you doing ok", "you doing okay",
+                     "how's your day", "hows your day", "how is your day", "how's it going", "hows it going")
 COMPLIMENT_MARKERS = ("amazing", "awesome", "you're great", "youre great", "you are great",
                       "love you", "you rock", "brilliant", "fantastic", "so helpful", "the best")
 THANKS_MARKERS = ("thank", "thanks", "thx", "appreciate", "cheers")
@@ -85,7 +112,7 @@ STORE_TOPIC = (
     "order", "refund", "return", "ship", "deliver", "track", "cancel", "warrant", "damage",
     "broken", "defect", "policy", "hour", "payment", " pay", "card", "address", "item", "product",
     "stock", "price", "gift card", "exchange", "international", "eta", "arrive", "package", "parcel",
-    "money back", "receipt", "invoice", "carrier", "label", "restock",
+    "money back", "receipt", "invoice", "carrier", "label", "restock", "pay",
 )
 POLICY_FRAMING = (
     "how do", "how does", "how long", "how many", "what's your", "whats your", "what is your",
@@ -123,6 +150,13 @@ def _order_id_for(text: str, markers: tuple[str, ...]) -> str | None:
 
 def _has(text: str, markers) -> bool:
     return any(m in text for m in markers)
+
+
+def _has_word(text: str, markers) -> bool:
+    """Word-START boundary (prefix) match: 'refund' matches 'refund/refunds/
+    refunded' but NOT 'broken' inside 'heartbroken' or 'ship' inside
+    'relationship'. Handles plurals/tenses while rejecting mid-word matches."""
+    return any(re.search(r"\b" + re.escape(m), text) for m in markers)
 
 
 def _is_question(t: str) -> bool:
@@ -172,8 +206,9 @@ def _detect_intent(text: str) -> str:
 
     # An informationally-framed store question -> knowledge base (this wins over
     # an action word, so "how long do refunds take" is a question, not an action).
-    store = _has(t, STORE_TOPIC) or _has(t, POLICY_MARKERS)
-    policyish = _has(t, POLICY_FRAMING) or _has(t, POLICY_MARKERS)
+    # Word-boundary matching so mood words like "heartbroken" aren't read as store topics.
+    store = _has_word(t, STORE_TOPIC) or _has_word(t, POLICY_MARKERS)
+    policyish = _has(t, POLICY_FRAMING) or _has_word(t, POLICY_MARKERS)
     if store and policyish:
         return "policy_qa"
 
@@ -192,7 +227,21 @@ def _detect_intent(text: str) -> str:
     if store:
         return "order_status"
 
-    # Human / conversational.
+    # Human / conversational — read the mood and respond to how they feel.
+    if _has(t, WELLBEING_MARKERS):
+        return "wellbeing"
+    if _has(t, APOLOGETIC_MARKERS):
+        return "apologetic"
+    if _has(t, POSITIVE_EMOTION):
+        return "positive_emotion"
+    if _has(t, CONFUSED_MARKERS):
+        return "confused"
+    if _has(t, SAD_EMOTION):
+        return "sad"
+    if _has(t, ANXIOUS_MARKERS):
+        return "anxious"
+    if _has(t, IMPATIENT_MARKERS):
+        return "impatient"
     if _has(t, THANKS_MARKERS):
         return "thanks"
     if _has(t, GOODBYE_MARKERS):
@@ -292,6 +341,37 @@ def plan_next_step(messages: list[dict], tools: list[dict]) -> Step:
         return _final(
             f"Happy to help! I can {CAPABILITIES}. If you have an order number (like ORD-00012), "
             "share it and I'll take a look — or just tell me what's going on.")
+    if intent == "wellbeing":
+        return _final(
+            "I'm doing great, thanks for asking! 🙂 I'm here and ready to help. Is there something I can "
+            "do for you today — check an order, sort out a refund, or answer a question?")
+    if intent == "positive_emotion":
+        return _final(
+            "That's wonderful to hear — thanks for sharing, it made my day too! Is there anything I can help "
+            "you with while you're here, like an order or a policy question?")
+    if intent == "sad":
+        return _final(
+            "I'm really sorry you're having a tough time — I hope things start looking up for you soon. "
+            "If there's anything about an order I can take off your plate, I'm right here to help; just share "
+            "your order number or tell me what's going on, and I'll do my best to make it easy.")
+    if intent == "anxious":
+        return _final(
+            "I completely understand, and I'd feel the same — let's put your mind at ease. If it's about an "
+            "order, share the order number and I'll check its exact status and ETA right away so you know "
+            "precisely where things stand.")
+    if intent == "confused":
+        return _final(
+            "No worries at all — let's clear it up together. Could you tell me a little more about what you're "
+            "trying to do, or share your order number? I can check status, process a refund, update shipping, "
+            "cancel an order, or explain any of our policies.")
+    if intent == "impatient":
+        return _final(
+            "I hear you, and I don't want to keep you waiting — let's get this handled fast. What's your order "
+            "number? I'll pull up the status and ETA right now.")
+    if intent == "apologetic":
+        return _final(
+            "Please don't apologize — that's exactly what I'm here for, and it's no bother at all! What can I "
+            "help you with?")
     if intent == "thanks":
         return _final("You're very welcome! Is there anything else I can help you with?")
     if intent == "goodbye":

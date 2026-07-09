@@ -72,3 +72,23 @@ def test_support_hours_uses_knowledge_base(seeded):
     r = ask(seeded, "What are your support hours?")
     assert any(t["tool"] == "search_knowledge_base" for t in r["tool_calls_made"])
     assert r["citations"]
+
+
+@pytest.mark.parametrize("msg,needle", [
+    ("i'm feeling really down today", "sorry"),        # sad -> empathy
+    ("i'm heartbroken", "sorry"),                        # (not a policy 'broken' match)
+    ("i've had a terrible day", "sorry"),
+    ("i'm so happy today!", "wonderful"),                # positive -> warm
+    ("i'm having a great day", "wonderful"),
+    ("i'm really nervous about this", "ease"),           # anxious -> reassure
+    ("i'm so confused", "clear it up"),                  # confused -> clarify
+    ("this is taking forever", "waiting"),               # impatient
+    ("sorry to bother you", "apologize"),                # apologetic
+    ("how are you?", "doing great"),                     # wellbeing
+    ("you're amazing", "kind"),                          # compliment
+])
+def test_mood_aware_responses(seeded, msg, needle):
+    r = ask(seeded, msg)
+    assert r["tool_calls_made"] == [], f"unexpected tool for mood msg {msg!r}"
+    assert not r["citations"], f"policy leak for mood msg {msg!r}"
+    assert needle.lower() in r["reply"].lower(), f"{needle!r} not in reply to {msg!r}: {r['reply']!r}"
