@@ -49,9 +49,25 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    # Populate a fresh database (SQLite or Supabase) on first boot; skips when
+    # data already exists, so restarts against a persistent DB don't wipe it.
+    from app.db.database import SessionLocal
+    from app.knowledge.ingest import ingest_if_empty
+    from app.store.seed import seed_if_empty
+
+    db = SessionLocal()
+    try:
+        seeded = seed_if_empty(db)
+        ingested = ingest_if_empty(db)
+        if seeded or ingested:
+            logger.info("Bootstrapped data: seeded=%s ingested=%s", bool(seeded), bool(ingested))
+    except Exception as e:  # never let bootstrap crash startup
+        logger.warning("Startup bootstrap skipped: %s", e)
+    finally:
+        db.close()
     logger.info(
         "Northwind Support AI up. db=%s llm=%s",
-        settings.database_url.split("://")[0],
+        settings.database_url.split("://")[0].replace("+psycopg2", ""),
         "anthropic" if settings.llm_available else "deterministic (offline)",
     )
 

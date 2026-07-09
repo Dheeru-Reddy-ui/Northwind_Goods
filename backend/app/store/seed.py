@@ -162,6 +162,14 @@ def seed(db: Session) -> dict:
     return {"customers": n_customers, "orders": n_orders}
 
 
+def seed_if_empty(db: Session) -> dict | None:
+    """Seed only when the store is empty — safe to call on every boot against a
+    persistent database (Supabase) without wiping live changes."""
+    if db.query(Customer).count() > 0:
+        return None
+    return seed(db)
+
+
 def main() -> None:
     init_db()
     db = SessionLocal()

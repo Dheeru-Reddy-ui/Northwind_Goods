@@ -13,16 +13,36 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
-_connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    _connect_args = {"check_same_thread": False}
+def _normalize_url(url: str) -> str:
+    """Accept the connection string Supabase/Postgres hands you verbatim.
 
-engine = create_engine(
-    settings.database_url,
-    connect_args=_connect_args,
-    pool_pre_ping=True,
-    future=True,
-)
+    SQLAlchemy needs the `postgresql+psycopg2://` driver prefix; Supabase gives
+    `postgresql://` (or the legacy `postgres://`). Normalize both.
+    """
+    if url.startswith("postgresql+"):
+        return url
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg2://" + url[len("postgresql://"):]
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg2://" + url[len("postgres://"):]
+    return url
+
+
+_db_url = _normalize_url(settings.database_url)
+_is_sqlite = _db_url.startswith("sqlite")
+_connect_args: dict = {}
+_engine_kwargs: dict = {"pool_pre_ping": True, "future": True}
+
+if _is_sqlite:
+    _connect_args["check_same_thread"] = False
+else:
+    # Postgres / Supabase: require SSL, recycle pooled connections (the pooler
+    # closes idle ones), and keep a modest pool sized for a demo backend.
+    if "sslmode=" not in _db_url:
+        _connect_args["sslmode"] = "require"
+    _engine_kwargs.update(pool_size=5, max_overflow=5, pool_recycle=300)
+
+engine = create_engine(_db_url, connect_args=_connect_args, **_engine_kwargs)
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
 

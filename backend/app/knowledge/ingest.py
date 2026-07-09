@@ -65,6 +65,13 @@ def ingest_into(db) -> dict:
     return {"files": len(files), "chunks": total}
 
 
+def ingest_if_empty(db) -> dict | None:
+    """Ingest only when the knowledge base is empty (persistent-DB safe)."""
+    if db.query(KnowledgeChunk).count() > 0:
+        return None
+    return ingest_into(db)
+
+
 def ingest() -> dict:
     init_db()
     db = SessionLocal()
