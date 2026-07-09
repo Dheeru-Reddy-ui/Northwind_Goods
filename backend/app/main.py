@@ -80,9 +80,12 @@ async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
 
 @app.get("/health", tags=["meta"])
 def health() -> dict:
+    from app.db.database import engine
+
     return {
         "status": "ok",
         "version": __version__,
+        "db": engine.url.get_backend_name(),  # "postgresql" (Supabase) or "sqlite"
         "llm": "anthropic" if settings.llm_available else "deterministic",
     }
 
